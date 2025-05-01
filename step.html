@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <title>Svetofor & Lokatsiya</title>
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=1fa47b57-a028-4f5e-a2c6-d4555340d310&lang=uz_UZ" type="text/javascript"></script>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #map {
+      width: 90%;
+      height: 300px;
+      margin: 20px auto;
+      border: 1px solid #aaa;
+      display: none;
+    }
+    #status {
+      font-size: 18px;
+      margin: 15px;
+      font-weight: bold;
+    }
+    .traffic-light {
+      margin: 20px auto;
+      width: 100px;
+      padding: 20px;
+      background-color: #222;
+      border-radius: 20px;
+      display: none;
+    }
+    .light {
+      width: 60px;
+      height: 60px;
+      margin: 15px auto;
+      border-radius: 50%;
+      background-color: #555;
+      opacity: 0.4;
+    }
+    .red.active { background-color: red; opacity: 1; }
+    .yellow.active { background-color: yellow; opacity: 1; }
+    .green.active { background-color: green; opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <h2>Svetofor holatini aniqlash</h2>
+  <button onclick="getLocation()">Joyimni aniqlash</button>
+
+  <div id="status">Joy aniqlanmagan</div>
+  <div id="map"></div>
+
+  <div class="traffic-light" id="trafficLight">
+    <div id="red" class="light red"></div>
+    <div id="yellow" class="light yellow"></div>
+    <div id="green" class="light green"></div>
+  </div>
+
+  <script>
+    let map;
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition, showError);
+        document.getElementById("status").textContent = "Joylashuv aniqlanmoqda...";
+      } else {
+        document.getElementById("status").textContent = "Brauzeringiz geolokatsiyani qo‘llamaydi.";
+      }
+    }
+
+    function showPosition(position) {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+
+      const trafficLat = 41.3111;
+      const trafficLon = 69.2797;
+      const distance = getDistanceFromLatLonInKm(lat, lon, trafficLat, trafficLon);
+
+      document.getElementById("map").style.display = "block";
+      map = new ymaps.Map("map", {
+        center: [lat, lon],
+        zoom: 15
+      });
+      map.geoObjects.add(new ymaps.Placemark([lat, lon], { balloonContent: 'Sizning joyingiz' }));
+
+      if (distance < 1) {
+        document.getElementById("status").textContent = "Siz svetofor yaqinidasiz!";
+        document.getElementById("trafficLight").style.display = "block";
+        runTrafficLight();
+      } else {
+        document.getElementById("status").textContent = "Svetofor atrofigizda mavjud emas.";
+        document.getElementById("trafficLight").style.display = "none";
+      }
+    }
+
+    function showError() {
+      document.getElementById("status").textContent = "Xatolik: joylashuv aniqlanmadi.";
+    }
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function deg2rad(deg) {
+      return deg * (Math.PI / 180);
+    }
+
+    function runTrafficLight() {
+      const lights = ["red", "yellow", "green"];
+      let index = 0;
+
+      function cycle() {
+        lights.forEach(id => document.getElementById(id).classList.remove("active"));
+        document.getElementById(lights[index]).classList.add("active");
+
+        if (navigator.vibrate) {
+          navigator.vibrate(300);
+        }
+
+        index = (index + 1) % lights.length;
+        setTimeout(cycle, index === 1 ? 2000 : index === 2 ? 4000 : 5000);
+      }
+
+      cycle();
+    }
+  </script>
+
+</body>
+</html>
